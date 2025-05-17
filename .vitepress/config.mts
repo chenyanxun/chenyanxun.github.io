@@ -2,6 +2,7 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
+  base: "/",
   lang: "en-US",
   title: "Gavin`s Tech Blog",
   description: "Hello, I’m Gavin, a full-stack engineer skilled in front-end development and smart contracts. This is my tech blog.",

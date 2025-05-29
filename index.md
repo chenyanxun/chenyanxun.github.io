@@ -3,7 +3,7 @@
 layout: home
 
 hero:
-  name: "Gavin`s blog11"
+  name: "Gavin`s blog112222"
   text: "A VitePress Site"
   tagline: My great project tagline
   actions:
@@ -22,4 +22,3 @@ features:
   - title: Feature C
     details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
 ---
-

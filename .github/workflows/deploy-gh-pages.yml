@@ -1,53 +1,66 @@
-# Sample workflow for building and deploying a Jekyll site to GitHub Pages
-name: Deploy to GitHub Pages
+# 构建 VitePress 站点并将其部署到 GitHub Pages 的示例工作流程
+#
+name: Deploy VitePress site to Pages
 
 on:
-  # Runs on pushes targeting the default branch
+  # 在针对 `main` 分支的推送上运行。如果你
+  # 使用 `master` 分支作为默认分支，请将其更改为 `master`
   push:
-    branches: ["main"]
-    paths:
-      - ".vitepress/**"
-      - "docs/**"
-      - index.md
-      - package.json
+    branches: [main]
+
+  # 允许你从 Actions 选项卡手动运行此工作流程
+  workflow_dispatch:
+
+# 设置 GITHUB_TOKEN 的权限，以允许部署到 GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 只允许同时进行一次部署，跳过正在运行和最新队列之间的运行队列
+# 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
-  build-and-deploy:
+  # 构建工作
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          node-version: 20
-      - name: build
-        run: |
-          npm install
-          npm run docs:build
-          echo "---------- vitepress build done ----------"
-      - name: set ssh key # 临时设置 ssh key
-        run: |
-          mkdir -p ~/.ssh/
-          echo "${{secrets.SSH_KEY_FOR_DEPLOY_GH_PAGES}}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan "github.com" >> ~/.ssh/known_hosts
-          echo "---------- set ssh-key ok ----------"
-      - name: download and replace # 下载现有文件，替换
-        run: |
-          git clone git@github.com:mianshipai/mianshipai.github.io.git
-          echo "---------- git clone ok ----------"
-          cp -r ./.vitepress/dist/* ./mianshipai.github.io ## 用最新构建出来的文件，替换现有的
-          echo "---------- replace ok ----------"
-      - name: upload latest files # 上传文件
-        run: |
-          cd ./mianshipai.github.io
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          echo "---------- begin git status ----------"
-          echo `git status`
-          echo "---------- end git status ----------"
-          git add .
-          git commit -m "update by github actions"
-          echo "---------- begin git push ----------"
-          git push origin main
-          echo "---------- end git push ----------"
-      - name: delete ssh key # 删除 ssh key
-        run: rm -rf ~/.ssh/id_rsa
+          fetch-depth: 0 # 如果未启用 lastUpdated，则不需要
+      # - uses: pnpm/action-setup@v3 # 如果使用 pnpm，请取消此区域注释
+      #   with:
+      #     version: 9
+      # - uses: oven-sh/setup-bun@v1 # 如果使用 Bun，请取消注释
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm # 或 pnpm / yarn
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Install dependencies
+        run: npm ci # 或 pnpm install / yarn install / bun install
+      - name: Build with VitePress
+        run: npm run docs:build # 或 pnpm docs:build / yarn docs:build / bun run docs:build
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.vitepress/dist
+
+  # 部署工作
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
